@@ -794,7 +794,7 @@ the specific language governing permissions and limitations under the Apache Lic
                 if ("tags" in opts) {
                     throw "tags specified as both an attribute 'data-select2-tags' and in options of Select2 " + opts.element.attr("id");
                 }
-                opts.tags=opts.element.attr("data-select2-tags");
+                opts.tags=opts.element.data("select2Tags");
             }
 
             if (select) {
@@ -1171,7 +1171,7 @@ the specific language governing permissions and limitations under the Apache Lic
             this.container.removeClass("select2-dropdown-open");
             this.results.empty();
             this.clearSearch();
-
+            this.search.removeClass("select2-active");
             this.opts.element.trigger($.Event("close"));
         },
 
@@ -1362,6 +1362,8 @@ the specific language governing permissions and limitations under the Apache Lic
 
             // prevent duplicate queries against the same term
             if (initial !== true && lastTerm && equal(term, lastTerm)) return;
+
+            $.data(this.container, "select2-last-term", term);
 
             // if the search is currently hidden we do not alter the results
             if (initial !== true && (this.showSearchInput === false || !this.opened())) {
@@ -1688,6 +1690,11 @@ the specific language governing permissions and limitations under the Apache Lic
             this.selection = selection = container.find(".select2-choice");
 
             this.focusser = container.find(".select2-focusser");
+
+            // rewrite labels from original element to focusser
+            this.focusser.attr("id", "s2id_autogen"+nextUid());
+            $("label[for='" + this.opts.element.attr("id") + "']")
+                .attr('for', this.focusser.attr('id'));
 
             this.search.bind("keydown", this.bind(function (e) {
                 if (!this.enabled) return;
@@ -2131,6 +2138,11 @@ the specific language governing permissions and limitations under the Apache Lic
 
             this.searchContainer = this.container.find(".select2-search-field");
             this.selection = selection = this.container.find(selector);
+
+            // rewrite labels from original element to focusser
+            this.search.attr("id", "s2id_autogen"+nextUid());
+            $("label[for='" + this.opts.element.attr("id") + "']")
+                .attr('for', this.search.attr('id'));
 
             this.search.bind("input paste", this.bind(function() {
                 if (!this.enabled) return;
