@@ -1358,8 +1358,6 @@ the specific language governing permissions and limitations under the Apache Lic
                 term = search.val(),
                 lastTerm=$.data(this.container, "select2-last-term");
 
-            $.data(this.container, "select2-last-term", term);
-
             // prevent duplicate queries against the same term
             if (initial !== true && lastTerm && equal(term, lastTerm)) return;
 
