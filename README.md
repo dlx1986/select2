@@ -19,9 +19,9 @@ What Usecases Does Select2 Support
 
 Browser Compatibility
 --------------------
-* IE 8+ (7 mostly works except for [issue with z-index](https://github.com/ivaynberg/select2/issues/37))
+* IE 8+
 * Chrome 8+
-* Firefox 3.5+
+* Firefox 10+
 * Safari 3+
 * Opera 10.6+
 
@@ -34,6 +34,7 @@ Integrations
 * [Django](https://github.com/applegrew/django-select2)
 * [Symfony](https://github.com/19Gerhard85/sfSelect2WidgetsPlugin)
 * [Bootstrap](https://github.com/t0m/select2-bootstrap-css) (CSS skin)
+* [Yii](https://github.com/tonybolzan/yii-select2)
 
 Internationalization (i18n)
 ---------------------------
