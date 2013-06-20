@@ -543,7 +543,7 @@ the specific language governing permissions and limitations under the Apache Lic
     function checkFormatter(formatter, formatterName) {
         if ($.isFunction(formatter)) return true;
         if (!formatter) return false;
-        throw new Error("formatterName must be a function or a falsy value");
+        throw new Error(formatterName +" must be a function or a falsy value");
     }
 
     function evaluate(val) {
@@ -763,21 +763,24 @@ the specific language governing permissions and limitations under the Apache Lic
 
         // abstract
         destroy: function () {
-            var select2 = this.opts.element.data("select2");
+            var element=this.opts.element, select2 = element.data("select2");
 
             if (this.propertyObserver) { delete this.propertyObserver; this.propertyObserver = null; }
 
             if (select2 !== undefined) {
-
                 select2.container.remove();
                 select2.dropdown.remove();
-                select2.opts.element
+                element
                     .removeClass("select2-offscreen")
                     .removeData("select2")
                     .off(".select2")
-                    .attr({"tabindex": this.elementTabIndex})
-                    .prop("autofocus", this.autofocus||false)
-                    .show();
+                    .prop("autofocus", this.autofocus || false);
+                if (this.elementTabIndex) {
+                    element.attr({tabindex: this.elementTabIndex});
+                } else {
+                    element.removeAttr("tabindex");
+                }
+                element.show();
             }
         },
 
@@ -1218,7 +1221,7 @@ the specific language governing permissions and limitations under the Apache Lic
                 scroll = "scroll." + cid,
                 resize = "resize."+cid,
                 orient = "orientationchange."+cid,
-                mask, undermask = undefined, maskCss;
+                mask, maskCss;
 
             this.container.addClass("select2-dropdown-open").addClass("select2-container-active");
 
@@ -1249,30 +1252,9 @@ the specific language governing permissions and limitations under the Apache Lic
                 });
             }
 
-            // IE requires an iframe shim to cover controls like selects
-            if($.support.opacity) {
-                // a hack to detect older IE browsers - they do not support opacity
-                undermask=$("#select2-drop-undermask");
-                if (undermask.length==0) {
-                    undermask = $(document.createElement("iframe"));
-                    undermask.attr("src","about:blank");
-                    undermask.attr("id","select2-drop-undermask").attr("class","select2-drop-undermask");
-                    undermask.attr("allowTransparency", "true");
-                    undermask.attr("frameborder", "0");
-                    undermask.hide();
-                    undermask.appendTo(this.body());
-                }
-            }
-
-
             // ensure the mask is always right before the dropdown
             if (this.dropdown.prev()[0] !== mask[0]) {
                 this.dropdown.before(mask);
-            }
-
-            // ensure the undermask is always right before the mask
-            if (undermask && mask.prev()[0] !== undermask[0]) {
-                mask.before(undermask);
             }
 
             // move the global id to the correct dropdown
@@ -1282,15 +1264,12 @@ the specific language governing permissions and limitations under the Apache Lic
             // show the elements
             maskCss=_makeMaskCss();
 
-            if (undermask) { undermask.css(maskCss).show(); }
-
             mask.css(maskCss).show();
 
             this.dropdown.show();
             this.positionDropdown();
 
             this.dropdown.addClass("select2-drop-active");
-            this.ensureHighlightVisible();
 
             // attach listeners to events that can change the position of the container and thus require
             // the position of the dropdown to be updated as well so it does not come unglued from the container
@@ -1298,7 +1277,6 @@ the specific language governing permissions and limitations under the Apache Lic
             this.container.parents().add(window).each(function () {
                 $(this).on(resize+" "+scroll+" "+orient, function (e) {
                     var maskCss=_makeMaskCss();
-                    $("#select2-drop-undermask").css(maskCss);
                     $("#select2-drop-mask").css(maskCss);
                     that.positionDropdown();
                 });
@@ -1326,7 +1304,6 @@ the specific language governing permissions and limitations under the Apache Lic
 
             this.clearDropdownAlignmentPreference();
 
-            $("#select2-drop-undermask").hide();
             $("#select2-drop-mask").hide();
             this.dropdown.removeAttr("id"); // only the active dropdown has the select2-drop id
             this.dropdown.hide();
@@ -1343,7 +1320,7 @@ the specific language governing permissions and limitations under the Apache Lic
          * Opens control, sets input value, and updates results.
          */
         // abstract
-        search: function (term) {
+        externalSearch: function (term) {
             this.open();
             this.search.val(term);
             this.updateResults(false);
@@ -1542,7 +1519,6 @@ the specific language governing permissions and limitations under the Apache Lic
             }
 
             function postRender() {
-                results.scrollTop(0);
                 search.removeClass("select2-active");
                 self.positionDropdown();
             }
@@ -1706,6 +1682,8 @@ the specific language governing permissions and limitations under the Apache Lic
             if (data) {
                 this.highlight(index);
                 this.onSelect(data, options);
+            } else if (options.noFocus) {
+                this.close();
             }
         },
 
@@ -1959,6 +1937,9 @@ the specific language governing permissions and limitations under the Apache Lic
 
                 if (e.which == KEY.DOWN || e.which == KEY.UP
                     || (e.which == KEY.ENTER && this.opts.openOnEnter)) {
+
+                    if (e.altKey || e.ctrlKey || e.shiftKey || e.metaKey) return;
+                    
                     this.open();
                     killEvent(e);
                     return;
@@ -2163,7 +2144,11 @@ the specific language governing permissions and limitations under the Apache Lic
 
             // and highlight it
             if (noHighlightUpdate !== false) {
-                this.highlight(selected);
+                if (initial === true && selected >= 0) {
+                    this.highlight(selected);
+                } else {
+                    this.highlight(0);
+                }
             }
 
             // hide the search box if this is the first we got the results and there are enough of them for search
@@ -2865,7 +2850,9 @@ the specific language governing permissions and limitations under the Apache Lic
             //If all results are chosen render formatNoMAtches
             if(!this.opts.createSearchChoice && !choices.filter('.select2-result:not(.select2-selected)').length > 0){
             	if(!data || data && !data.more && this.results.find(".select2-no-results").length === 0) {
-            	    this.results.append("<li class='select2-no-results'>" + self.opts.formatNoMatches(self.search.val()) + "</li>");
+            	    if (checkFormatter(self.opts.formatNoMatches, "formatNoMatches")) {
+                        this.results.append("<li class='select2-no-results'>" + self.opts.formatNoMatches(self.search.val()) + "</li>");
+                    }
             	}
             }
 
@@ -3061,9 +3048,10 @@ the specific language governing permissions and limitations under the Apache Lic
         var args = Array.prototype.slice.call(arguments, 0),
             opts,
             select2,
-            value, multiple,
+            method, value, multiple,
             allowedMethods = ["val", "destroy", "opened", "open", "close", "focus", "isFocused", "container", "dropdown", "onSortStart", "onSortEnd", "enable", "readonly", "positionDropdown", "data", "search", "popularItems"],
-            valueMethods = ["val", "opened", "isFocused", "container", "data"];
+            valueMethods = ["val", "opened", "isFocused", "container", "data"],
+            methodsMap = { search: "externalSearch" };
 
         this.each(function () {
             if (args.length === 0 || typeof(args[0]) === "object") {
@@ -3088,12 +3076,17 @@ the specific language governing permissions and limitations under the Apache Lic
                 value = undefined;
                 select2 = $(this).data("select2");
                 if (select2 === undefined) return;
-                if (args[0] === "container") {
+
+                method=args[0];
+
+                if (method === "container") {
                     value = select2.container;
-                } else if (args[0] === "dropdown") {
+                } else if (method === "dropdown") {
                     value = select2.dropdown;
                 } else {
-                    value = select2[args[0]].apply(select2, args.slice(1));
+                    if (methodsMap[method]) method = methodsMap[method];
+
+                    value = select2[method].apply(select2, args.slice(1));
                 }
                 if (indexOf(args[0], valueMethods) >= 0) {
                     return false;
